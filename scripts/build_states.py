@@ -1,14 +1,19 @@
-"""Build data/processed/states.json, states_annual.csv and states_monthly.csv.
+"""Make states.json, states_annual.csv, states_monthly.csv, and cpi.json.
 
-Annual `home_value` per state (nominal $):
-  * Zillow years (2000+; 2002-2009 for MT, NM, ND, WY): ZHVI annual mean.
-    The latest year is a partial-year mean.
-  * Earlier years back to 1975: the FHFA all-transactions HPI, scaled to the
-    first Zillow year, then benchmarked through the 1980 and 1990 census
-    medians. FHFA is a constant-quality repeat-sales index, so on its own it
-    drifts from "typical home" medians (+26% vs census by 1980 on average,
-    range 0.74x-1.88x); the benchmark keeps FHFA's year-to-year shape but
-    matches census levels in benchmark years.
+Home value of each state (in the dollars of each year):
+  * From the first Zillow year: the average of the monthly Zillow ZHVI
+    values. The first Zillow year is 2000 for most states, and 2002 to 2009
+    for MT, NM, ND, and WY. The value for the latest year is the average of
+    the months that are available.
+  * Before the first Zillow year, back to 1975: the FHFA house price index.
+    The script scales the index to the first Zillow value. Then it adjusts
+    the result to agree with the 1980 and 1990 census medians.
+
+Why the adjustment is necessary: The FHFA index follows the price of the same
+homes. The census and Zillow follow the typical home, which changes over
+time. Without the adjustment, the 1980 values are 26% above the census
+medians on average (range 0.74 to 1.88 times). The adjustment keeps the
+year-to-year changes of the FHFA index.
 """
 
 import re

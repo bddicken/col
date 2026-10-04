@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Turn data/raw/ into app-ready files in data/processed/.
+"""Make the app files in data/processed/ from the source files in data/raw/.
 
 Usage:
-    python scripts/process.py                  # states, counties, cities
-    python scripts/process.py states cities    # a subset (by_state reads their output)
+    python scripts/process.py                   Do all the steps.
+    python scripts/process.py states counties   Do only the given steps.
+
+The steps are states, counties, cities, and by_state. The by_state step uses
+the output of the other three steps. Do the download (scripts/download.py)
+before this script.
 """
 
 import shutil

@@ -1,17 +1,21 @@
-"""Build data/processed/cities.json, cities_annual.csv and city_crosswalk.csv.
+"""Make cities.json, cities_annual.csv, and city_crosswalk.csv.
 
-Zillow "cities" carry no coordinates or Census codes, so each one is matched
-to a Census Gazetteer location, in order of preference:
-  1. override     scripts/city_overrides.csv (hand-checked fixes)
-  2. place        Census place with the same normalized name in the same state
-  3. place_alias  consolidated city-counties ("Nashville-Davidson ... (balance)"),
-                  "Urban Honolulu", "San Buenaventura (Ventura)", ...
-  4. cousub       county subdivision (NJ/PA/MI/New England townships)
-  5. county       Zillow's county centroid (approximate location)
-Ties between same-named candidates go to the one closest to Zillow's county,
-and a candidate implausibly far from that county (> 3 x county radius + 50 km)
-is rejected, since Zillow's postal city names often reuse a place name found
-elsewhere in the state.
+The Zillow city files do not give a location or a Census code. The script
+finds each city in the Census Gazetteer. It tries these methods in sequence:
+  1. override     A manual location from scripts/city_overrides.csv.
+  2. place        A Census place with the same name in the same state.
+  3. place_alias  A different form of the Census name. Examples:
+                  "Nashville-Davidson metropolitan government (balance)",
+                  "Urban Honolulu", "San Buenaventura (Ventura)".
+  4. cousub       A county subdivision, for example a township in NJ, PA, MI,
+                  or New England.
+  5. county       The center of the Zillow county. This location is approximate.
+
+If two or more candidates have the same name, the script uses the candidate
+nearest to the Zillow county. The script rejects a candidate that is too far
+from the Zillow county (more than 3 times the county radius, plus 50 km).
+This rule is necessary because many Zillow city names are also the names of
+other places in the same state.
 """
 
 import math

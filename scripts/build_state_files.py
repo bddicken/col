@@ -1,10 +1,9 @@
-"""Split counties.json and cities.json into one small file per state for the
-app's drill-down: data/processed/by_state/{state_fips}.json.
+"""Make one file for each state for the state view of the app:
+data/processed/by_state/{state_fips}.json.
 
-Every annual array is re-aligned to the `years` axis of states.json, so the app
-indexes states, counties and cities the same way. Cities whose location is only
-their county's center (match == "county") are left out, since they would stack
-on a single point.
+Each file contains the counties and the cities of one state. All the value
+lists use the `years` list of states.json. The file does not include cities
+with the `county` match, because their location is only the county center.
 """
 
 import json

@@ -1,7 +1,9 @@
-# Hand-checked locations for Zillow cities the automatic matcher misses.
-# Key: state + Zillow RegionName. Give a Census GEOID (7-digit place or
-# 10-digit county subdivision from the 2025 Gazetteer) or, for postal-only
-# communities with no Census geography, approximate lat/lon.
+# Manual locations for Zillow cities that the matching script does not find.
+# Each line has the state and the Zillow city name (RegionName), and one of:
+#   - geoid: a Census code from the 2025 Gazetteer (7 digits for a place,
+#     10 digits for a county subdivision).
+#   - lat and lon: an approximate location, for a city that has no Census area.
+# After you change this file, run scripts/process.py again.
 state,zillow_name,geoid,lat,lon,note
 FL,Fountainbleau,1224562,,,Fountainebleau CDP (spelling)
 FL,Hallandale,1228452,,,Hallandale Beach city

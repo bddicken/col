@@ -1,129 +1,202 @@
-# US Housing Cost Data — Source Research
+# Data sources
 
-Researched 2026-10-03. URLs marked ✓ were checked live (HTTP 200 and/or file parsed) on that date.
+This document lists the data sources of the project. For each source, it gives the data, the URLs, the coverage, and the terms of use.
 
-## TL;DR
+The information is correct on 3 October 2026. The download script (`scripts/download.py`) uses the URLs in this document.
 
-| Need | Best source | Geography | History | Unit |
+## Summary
+
+| Source | Data | Geography | Years | Unit |
 |---|---|---|---|---|
-| **Primary home values** | Zillow ZHVI | State, metro, county, **city (~21k)**, ZIP | **2000-01 → 2026-08**, monthly | $ (typical home value) |
-| Pre-2000 history / validation | FHFA HPI (all-transactions) | State, metro, county, ZIP | **1975 → 2026Q2** | Index (convert via anchor) |
-| Long-run state anchors | Census Historical Census of Housing | State | **1940 → 2000**, decennial | $ median value |
-| Official city medians | Census ACS 5-year `B25077` | All Census places (~30k) | 2009 → 2024, annual | $ median value |
-| Rents | Zillow ZORI / ACS `B25064` / HUD FMR | City / place / county | 2015+ / 2009+ / **1983+** | $ |
-| Overall cost of living | BEA Regional Price Parities | State, metro (no cities) | 2008 → 2024, annual | Index (US = 100) |
-| City coordinates | Census Gazetteer (places) | 32k places, lat/long | current | — |
-| State polygons | Census Cartographic Boundary 20m / `us-atlas` | State, county | current | — |
+| Zillow ZHVI | Typical home value | State, metro, county, city | 2000 to 2026, monthly | Dollars |
+| Zillow ZORI | Typical rent | Metro, county, city | 2015 to 2026, monthly | Dollars |
+| FHFA HPI | House price index | US, state, metro, county | 1975 to 2026 | Index |
+| Census Historical Census of Housing | Median home value and rent | US, state | 1940 to 2000, every 10 years | Dollars |
+| Census ACS | Median home value, rent, income, and population | US, state, county, city | 2005 to 2024, annual | Dollars, persons |
+| Census 2000 SF3 | Median home value, rent, income, and population | State, county, city | 2000 | Dollars, persons |
+| BEA Regional Price Parities | Cost-of-living index | State, metro | 2008 to 2024, annual | Index (US = 100) |
+| HUD Fair Market Rents | Rent for 0 to 4 bedrooms | County | 1983 to 2027, annual | Dollars |
+| FRED | CPI-U and median household income | US, state | 1947 to 2026 | Index, dollars |
+| Census Gazetteer | Location of places, county subdivisions, and counties | Place, county | 2025 | Latitude and longitude |
+| us-atlas | Map shapes of the states and counties | State, county | 2017 boundaries | TopoJSON |
 
-**Recommendation:** build on **Zillow ZHVI State + City** (dollar values, both levels, 26+ years, free with attribution). If you want history back past 2000, extend states with **FHFA HPI** scaled to Zillow's Jan-2000 dollar level. If the "cost of living" layer should mean more than housing, add **BEA RPP**.
+## Zillow
 
----
+### Zillow Home Value Index (ZHVI)
 
-## 1. Zillow Research — ZHVI (primary)
+The ZHVI is the typical value of a home in an area. It is in dollars. The project uses the version for all homes (single-family and condominium) in the middle price tier, adjusted for the season.
 
-- ✓ URL pattern: `https://files.zillowstatic.com/research/public_csvs/zhvi/{Geo}_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv`
-  - `Geo` is one of `State`, `Metro`, `County`, `City`, `Zip` or `Neighborhood`.
-  - Files are updated monthly. Last modified 2026-09-16.
-  - Sizes: State 0.3 MB, City 94 MB, Zip 124 MB.
-  - Bedroom-count variants exist, e.g. `City_zhvi_bdrmcnt_3_uc_sfrcondo_...`.
-- ✓ Format: wide CSV with one row per region and one column per month-end.
-  - City columns: `RegionID, SizeRank, RegionName, RegionType, StateName, State, Metro, CountyName, 2000-01-31 … 2026-08-31`
-- ✓ Coverage:
-  - State: 51 rows (50 states + DC).
-  - City: 21,369 cities. All have a current value, but only **8,691 have a value back to Jan 2000**, so the city history is sparse in early years.
-- ✓ Rents (ZORI): `.../zori/{City|Metro|County|Zip}_zori_uc_sfrcondomfr_sm_month.csv`
-  - Starts 2015-01, ~4,500 cities.
-  - There is no state-level ZORI file.
-- **No lat/long or FIPS codes in the files.** See §5 for how to join them to the map.
-- **Terms:** free for public use with "proper and clear attribution" to Zillow. Check the Terms of Use before redistributing the raw CSVs, and display "Data: Zillow" on the visualization.
-- No data before 2000.
+- **URL:** `https://files.zillowstatic.com/research/public_csvs/zhvi/{Geo}_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv`
+- **`{Geo}` values that the project uses:** `State`, `Metro`, `County`, `City`. The `--large` option also downloads `Zip`.
+- **Format:** CSV. Each row is one area. Each month is one column.
+- **Coverage:** 51 states (with DC), 3,071 counties, and 21,369 cities. Only 8,691 cities have a value for January 2000.
+- **Update:** Each month.
 
-## 2. FHFA House Price Index (extends history to 1975)
+The files do not give a latitude, a longitude, or a Census code for a city. The script `build_cities.py` finds these values in the Census Gazetteer.
 
-- ✓ Master file: `https://www.fhfa.gov/hpi/download/monthly/hpi_master.csv`
-  - 17 MB, long format.
-  - Columns: `hpi_type, hpi_flavor, frequency, level, place_name, place_id, yr, period, index_nsa, index_sa`
-- ✓ Quarterly state file: `https://www.fhfa.gov/hpi/download/quarterly_datasets/hpi_at_state.csv`
-  - No header row; columns are state, year, quarter, index.
-  - Covers 1975Q1 → 2026Q2.
-- ✓ Annual files with base-2000 = 100 versions: `https://www.fhfa.gov/hpi/download/annual/hpi_at_{state,cbsa,county,zip3,zip5}.xlsx`
-- No city/place level.
-- Only covers conforming (Fannie/Freddie) loans.
-- It is a repeat-sales **index**. Convert it to dollars with an anchor:
-  `value(t) = Zillow_or_Census_median(anchor_year) × HPI(t) / HPI(anchor_year)`
-- Public domain.
-- Alternative with similar coverage: **Freddie Mac FMHPI**, monthly by state and CBSA, 1975-01 → 2026-08.
-  - ✓ `https://www.freddiemac.com/fmac-resources/research/docs/fmhpi_master_file.csv`
+### Zillow Observed Rent Index (ZORI)
 
-## 3. Census Bureau (official dollar medians, public domain)
+The ZORI is the typical rent in an area. It is in dollars for each month.
 
-> ⚠️ **As of May 2026, the Census Data API requires a free key for every data query** (keyless calls redirect to an error). Get one at census.gov/data/developers. Alternatively, use the keyless summary-file downloads below.
->
-> ⚠️ **The 2025 ACS 1-year release is delayed indefinitely.** The latest available data is ACS 1-year 2024 and ACS 5-year 2020–2024.
+- **URL:** `https://files.zillowstatic.com/research/public_csvs/zori/{Geo}_zori_uc_sfrcondomfr_sm_month.csv`
+- **`{Geo}` values that the project uses:** `Metro`, `County`, `City`.
+- **Coverage:** From January 2015. Approximately 4,500 cities. Zillow does not publish a state file.
 
-- **ACS tables:**
-  - `B25077` median home value
-  - `B25064` median gross rent
-  - `B19013` median household income, for affordability ratios
-- **ACS 1-year:**
-  - Available 2005–2019 and 2021–2024; the standard 2020 release was never published.
-  - Places with 65k+ population only (657 places in 2024).
-- **ACS 5-year:**
-  - Available 2009–2024.
-  - Covers **all places**, counties, tracts and ZCTAs.
-  - Overlapping 5-year windows shouldn't be compared year over year.
-- API: `https://api.census.gov/data/2024/acs/acs5?get=NAME,B25077_001E&for=place:*&in=state:*&key=KEY`
-- ✓ Keyless bulk download: `https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/1YRData/acsdt1y2024-b25077.dat`
-  - Pipe-delimited. Replace `1YRData`/`acsdt1y` with `5YRData`/`acsdt5y` for the 5-year file.
-- **Decennial 2000:** SF3 `H085001` is median value by place (API `.../data/2000/dec/sf3`). 1990 isn't in the API; get it from NHGIS (free account).
-- **2010 and 2020 decennial censuses don't ask about home value.** ACS replaced the long form.
-- ✓ **Historical Census of Housing, by state, 1940–2000:**
-  - `https://www2.census.gov/programs-surveys/decennial/tables/time-series/coh-values/values-unadj.txt`
-  - `-adj.txt` is the inflation-adjusted version.
-  - Gross rents are in `coh-grossrents/`.
+### Terms of use
 
-## 4. Other sources
+Zillow permits public use of the data. Zillow requires clear attribution, for example "Data: Zillow". Read the Zillow Terms of Use before you publish the source files or files that you make from them.
 
-| Source | Notes |
+## Federal Housing Finance Agency (FHFA)
+
+The FHFA House Price Index (HPI) measures the change in price of the same homes over time. The index is not in dollars. The project uses the index to calculate home values before 2000.
+
+| File | URL | Contents |
+|---|---|---|
+| Master file | `https://www.fhfa.gov/hpi/download/monthly/hpi_master.csv` | US, state, and metro indexes. Quarterly from 1975. |
+| County file | `https://www.fhfa.gov/hpi/download/annual/hpi_at_county.xlsx` | County indexes. Annual from 1975 to 2025. |
+
+Limits of the FHFA data:
+
+- The index includes only homes with loans from Fannie Mae or Freddie Mac.
+- Some counties have no data in the early years.
+- The county file uses the 2022 planning regions for Connecticut. The project uses the state index for Connecticut counties.
+
+**Terms of use:** Public domain.
+
+## U.S. Census Bureau
+
+### Historical Census of Housing
+
+These tables give the median home value and the median rent for each state.
+
+- **Home values:** `https://www2.census.gov/programs-surveys/decennial/tables/time-series/coh-values/values-unadj.txt`
+- **Rents:** `https://www2.census.gov/programs-surveys/decennial/tables/time-series/coh-grossrents/grossrents-unadj.txt`
+- **Coverage:** Each census from 1940 to 2000.
+- **Format:** Text with fixed columns. The `-adj.txt` versions are adjusted for inflation.
+
+The project uses the 1980 and 1990 values to adjust the home values before 2000.
+
+### American Community Survey (ACS)
+
+The ACS gives medians for each year. The project uses these tables:
+
+| Table | Data |
 |---|---|
-| **BEA Regional Price Parities** | ✓ `https://apps.bea.gov/regional/zip/SARPP.zip` (state) and `MARPP.zip` (metro, 393 areas). Annual 2008–2024.<br>Line 1 = all items, line 3 = housing.<br>This is the real "cost of living" measure. It compares areas within a year, not across years. Public domain. |
-| **HUD Fair Market Rents** | ✓ `https://www.huduser.gov/portal/datasets/FMR/FMR_2Bed_1983_2027.csv`. County level, FY1983–FY2027.<br>Policy rent (about the 40th percentile), not a market median.<br>Downloads need a browser user agent and `--compressed`. |
-| **Redfin Data Center** | Median **sale** price. State, metro, county, city, ZIP, starting **2012** (too short for this project's history).<br>Old `redfin_market_tracker/*.tsv000.gz` files were frozen in June 2026. New ones are at `https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_data_center/property_types/monthly/all_{states,cities,...}.csv` (the city file is 2.2 GB).<br>Useful as a cross-check. |
-| **Realtor.com** | **Listing** prices. State, metro, county, ZIP (no city), starting 2016-07. Attribution required. |
-| **Case-Shiller** | Index for 20 metros + national, from 1987, via FRED. Reproduction prohibited without S&P permission, so use it for personal checks only. |
-| **NAR metro medians** | History file costs $1,500, with redistribution restrictions. Skip it. |
-| **FRED** | Aggregator. Keyless CSV: `https://fred.stlouisfed.org/graph/fredgraph.csv?id=SERIES`<br>State HPI is `{ST}STHPI`, e.g. `CASTHPI`. State median income is `MEHOINUS{ST}A646N`. |
+| B25077 | Median home value |
+| B25064 | Median gross rent |
+| B19013 | Median household income |
+| B01003 | Total population |
 
-## 5. Geography & joining
+The ACS has two versions:
 
-- **City points:** ✓ Census Gazetteer `https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2025_Gazetteer/2025_Gaz_place_national.zip`
-  - Pipe-delimited, 32,350 places.
-  - Columns include `GEOID, NAME, INTPTLAT, INTPTLONG, ALAND`.
-  - No population column; join ACS `B01003` on GEOID if you need it.
-- **Polygons:**
-  - ✓ Cartographic Boundary files: `https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_{state|county|cbsa}_20m.zip`. Places are only available at `500k`.
-  - ✓ Ready-made TopoJSON: `us-atlas@3` (`states-10m.json`, `counties-10m.json`, and pre-projected `*-albers-10m.json`).
-    - It has no cities.
-    - It's built from 2017 boundaries, so Connecticut counties won't match data from 2022 on, when Connecticut switched to planning regions.
-- **Zillow city → Census place join (main data-engineering task):**
-  - There's no published crosswalk.
-  - Zillow "cities" follow mailing-address names, not legal boundaries.
-  - A naive match on (state, name without its "city"/"CDP" suffix) linked **84.8%** of Zillow cities to the Gazetteer, but **31 of the top 1,000 failed**. Causes:
-    - Consolidated governments, e.g. Gazetteer names Nashville "Nashville-Davidson metropolitan government (balance)".
-    - Renames, e.g. "Urban Honolulu", and Ventura is "San Buenaventura".
-    - NJ/MI/PA townships, which are county subdivisions rather than places.
-    - Punctuation, e.g. Lees Summit / Lee's Summit.
-  - Plan: normalized name match, then a manual override table for the largest ~500, then a fallback to the county-subdivision Gazetteer file.
-- **Definitional pitfalls:**
-  - "City" means different things: a Census place, a Zillow postal city, and a metro (CBSA) are all different units.
-  - CBSA definitions changed in 2013, 2018, 2020 and 2023.
-  - Places annex land every year.
-  - For consistent 25-year comparisons, states (and counties on one fixed vintage) are the stable units. Treat city points as locations, not fixed areas.
+- **1-year:** Areas with 65,000 or more persons. The project uses this version for states.
+- **5-year:** All areas. The project uses this version for counties and cities. The year is the last year of the 5 years.
 
-## 6. Notes for the visualization
+The project downloads the ACS data in two ways:
 
-- **Dollars are nominal.** For a 30-year comparison, deflate with CPI (FRED `CPIAUCSL`). Or show price ÷ median income (affordability), which adjusts itself.
-- **Height map:**
-  - States: extruded polygons (deck.gl `GeoJsonLayer` with `extruded`, or MapLibre `fill-extrusion`).
-  - Cities: one column per city point (deck.gl `ColumnLayer`), with height = ZHVI.
-- **Interpolating city points into a continuous surface is misleading.** Prices jump at metro edges and coastlines, and rural areas would get made-up values. If you do it anyway, mask it to populated areas and label it illustrative. A county-level choropleth or extrusion is a more honest continuous-looking layer.
+| Method | Years | Key | URL |
+|---|---|---|---|
+| Summary files | 2021 to 2024 | Not necessary | `https://www2.census.gov/programs-surveys/acs/summary_file/{year}/table-based-SF/data/{1YRData or 5YRData}/acsdt{1 or 5}y{year}-{table}.dat` |
+| Census API | 1-year: 2005 to 2024. 5-year: 2009 to 2024. | Necessary | `https://api.census.gov/data/{year}/acs/{acs1 or acs5}` |
+
+The download script keeps only the US, state, county, and place rows of the summary files.
+
+Limits of the ACS data:
+
+- The Census Bureau did not publish the standard 1-year data for 2020.
+- The 2025 1-year data is late. The Census Bureau did not give a date.
+- Do not compare 5-year values for years next to each other. The two periods have 4 years in common.
+
+### 2000 census (SF3)
+
+The 2000 census is the last census with home values. The 2010 and 2020 censuses do not ask about home value.
+
+- **URL:** `https://api.census.gov/data/2000/dec/sf3`
+- **Variables:** `H085001` (median home value), `H063001` (median gross rent), `P053001` (median household income in 1999), `P001001` (population).
+- **Key:** Necessary.
+
+### Census API key
+
+Since May 2026, the Census API requires a key for all data requests. The key is free. To request a key, go to https://api.census.gov/data/key_signup.html. For the procedure, refer to the README.
+
+### Census Gazetteer
+
+The Gazetteer gives the location (latitude and longitude) and the land area of each Census area.
+
+- **URL:** `https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2025_Gazetteer/2025_Gaz_{layer}_national.zip`
+- **`{layer}` values that the project uses:** `place`, `cousubs`, `counties`, `cbsa`, `state`.
+- **Format:** Text with `|` between the columns.
+
+The 2025 Gazetteer uses the planning regions for Connecticut. It does not include the old Connecticut counties.
+
+**Terms of use for all Census data:** Public domain.
+
+## Bureau of Economic Analysis (BEA)
+
+The Regional Price Parities (RPP) compare the cost of living between areas. The US value is 100.
+
+- **States:** `https://apps.bea.gov/regional/zip/SARPP.zip`
+- **Metro areas:** `https://apps.bea.gov/regional/zip/MARPP.zip`
+- **Coverage:** Annual, 2008 to 2024.
+- **Lines that the project uses:** Line 1 (all items) and line 3 (housing).
+
+Compare RPP values only in one year. The RPP does not show the change over time.
+
+**Terms of use:** Public domain.
+
+## Department of Housing and Urban Development (HUD)
+
+The Fair Market Rent (FMR) is the rent that HUD uses for housing programs. It is approximately the 40th percentile of rents. It is not a market median.
+
+- **URL:** `https://www.huduser.gov/portal/datasets/FMR/FMR_All_1983_2027.csv`
+- **Coverage:** Counties, fiscal years 1983 to 2027, for 0 to 4 bedrooms.
+
+The HUD server sends a web page instead of the file to most scripts. To receive the file, the download script identifies itself as a web browser. It does this only for the HUD server.
+
+In New England, HUD gives the FMR for each town. The project uses the median of the towns in each county.
+
+**Terms of use:** Public domain.
+
+## FRED (Federal Reserve Bank of St. Louis)
+
+FRED gives data from other agencies in one place. The project uses these series:
+
+| Series | Data | Source agency | Years |
+|---|---|---|---|
+| `CPIAUCSL` | Consumer price index (CPI-U) | BLS | 1947 to 2026 |
+| `MEHOINUSA646N` | US median household income | Census Bureau (CPS) | 1984 to 2025 |
+| `MEHOINUS{ST}A646N` | State median household income. `{ST}` is the state code, for example `CA`. | Census Bureau (CPS) | 1984 to 2025 |
+
+- **URL:** `https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}`
+- **Key:** Not necessary for this URL.
+
+**Terms of use:** The terms of the source agency apply. These series are public domain.
+
+## us-atlas
+
+us-atlas gives the map shapes of the US states and counties in TopoJSON format. The shapes come from the 2017 Census cartographic boundary files.
+
+- **URL:** `https://cdn.jsdelivr.net/npm/us-atlas@3/{file}`
+- **Files that the project uses:** `states-10m.json`, `counties-10m.json`, `nation-10m.json`, and the `-albers-` versions of these files.
+- **Albers versions:** The shapes are projected to a 975 × 610 area. Alaska and Hawaii are below the other states.
+
+The county shapes use the old Connecticut counties. Zillow also uses the old counties.
+
+**Terms of use:** ISC license.
+
+## Sources that the project does not use
+
+| Source | Data | Reason |
+|---|---|---|
+| Redfin Data Center | Median sale price | The data starts in 2012. |
+| Realtor.com | Median listing price | The data starts in 2016. It has no city data. |
+| S&P CoreLogic Case-Shiller | House price index for 20 metro areas | It has no state or city data. S&P does not permit publication without approval. |
+| NAR metro medians | Median sale price | The historical file costs $1,500. NAR does not permit publication without approval. |
+| Freddie Mac FMHPI | House price index | FHFA gives similar data in the public domain. |
+
+## Limits of the data
+
+- **Cities:** A Zillow city uses the city name of a mailing address. It is not the same as a Census place. The project finds the nearest match. Refer to the README for the method.
+- **Metro areas:** The Census Bureau changed the metro area definitions in 2013, 2018, 2020, and 2023. Zillow uses the 2013 definitions.
+- **City areas:** Cities change their boundaries over time. Use a city point as a location, not as a fixed area.
+- **Dollars:** All source values are in the dollars of each year. To compare years, adjust the values for inflation with the CPI.

@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""Download raw housing / cost-of-living data into data/raw/<source>/.
+"""Download the source data to data/raw/. Each source has its own directory.
 
 Usage:
-    python scripts/download.py                 # everything (skips files already present)
-    python scripts/download.py --only zillow,fhfa
-    python scripts/download.py --force         # re-download even if present
-    python scripts/download.py --large         # also Zillow ZIP-level files (~125 MB each)
+    python scripts/download.py                     Download all the sources.
+    python scripts/download.py --only zillow,fhfa  Download only the given sources.
+    python scripts/download.py --force             Download all the files again.
+    python scripts/download.py --large             Also download the Zillow ZIP-code files.
 
-Set CENSUS_API_KEY (free: https://api.census.gov/data/key_signup.html) to also
-pull ACS history back to 2005/2009 and the 2000 census via the Census API.
-Without a key, ACS comes from the keyless summary files (2021-2024 only).
+The script does not download a file again if the file is already in data/raw/.
+If the output shows FAIL lines, run the script again.
 
-See DATA_SOURCES.md for what each source is and its terms of use.
+Census history: Set CENSUS_API_KEY to a Census API key. The script then also
+downloads ACS data from 2005 (states) and 2009 (counties and cities), and the
+2000 census data. Without a key, the ACS data starts in 2021.
+Request a key at https://api.census.gov/data/key_signup.html.
+
+For the sources and their terms of use, refer to DATA_SOURCES.md.
 """
 
 import argparse
@@ -223,9 +227,10 @@ def download_census_api(force):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--only", help="comma-separated sources: zillow,fhfa,census,bea,hud,fred,geo")
-    ap.add_argument("--force", action="store_true", help="re-download files that already exist")
-    ap.add_argument("--large", action="store_true", help="include Zillow ZIP-level files")
+    ap.add_argument("--only", help="download only these sources; use commas between them "
+                         "(zillow, fhfa, census, bea, hud, fred, geo)")
+    ap.add_argument("--force", action="store_true", help="download all the files again")
+    ap.add_argument("--large", action="store_true", help="also download the Zillow ZIP-code files")
     args = ap.parse_args()
     sys.stdout.reconfigure(line_buffering=True)
     only = set(args.only.split(",")) if args.only else None

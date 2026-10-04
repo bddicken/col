@@ -1,18 +1,19 @@
-"""Build data/processed/counties.json and counties_annual.csv.
+"""Make counties.json and counties_annual.csv.
 
-Counties are keyed by 5-digit FIPS matching the `id` of geometries in
-us-atlas counties-10m.json (2017 boundaries, so Connecticut uses its old
-counties, which is also what Zillow and older HUD/FHFA vintages use).
+The key of each county is its 5-digit FIPS code. The code agrees with the
+`id` of the shapes in us-atlas counties-10m.json. These shapes use the old
+Connecticut counties. Zillow and HUD also use the old counties.
 
-Annual `home_value` per county (nominal $):
-  * Zillow years (2000+ for most counties): ZHVI annual mean
-  * Earlier years back to 1975: the FHFA annual county HPI (chained onto the
-    state HPI for years before the county index starts, or entirely for
-    Connecticut, whose FHFA county file uses the 2022 planning regions),
-    scaled to the first Zillow year, then multiplied by the state's census
-    benchmark factors (see build_states.py) so counties stay consistent with
-    their state.
-`fmr_2br`: HUD Fair Market Rent, 2-bedroom, by fiscal year (1983+).
+Home value of each county (in the dollars of each year):
+  * From the first Zillow year: the average of the monthly Zillow ZHVI values.
+  * Before the first Zillow year, back to 1975: the FHFA county index. If the
+    county index starts late, the script continues it with the state index.
+    For Connecticut, the script uses only the state index, because the FHFA
+    county file uses the 2022 planning regions. The script scales the index
+    to the first Zillow value. Then it applies the adjustment factors of the
+    state (refer to build_states.py).
+
+fmr_2br is the HUD Fair Market Rent for two bedrooms, from fiscal year 1983.
 """
 
 import json
