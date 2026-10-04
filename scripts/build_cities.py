@@ -171,6 +171,8 @@ def match_cities(meta):
         if ov is not None:
             if ov.geoid:
                 hit = places.by_geoid.get(ov.geoid) or cousubs.by_geoid.get(ov.geoid)
+                if hit and ov.lat and ov.lon:  # keep the Census match, move the point
+                    hit = {**hit, "lat": float(ov.lat), "lon": float(ov.lon)}
             elif ov.lat and ov.lon:
                 hit = {"geoid": None, "name": ov.note or name, "lat": float(ov.lat),
                        "lon": float(ov.lon), "kind": "manual"}

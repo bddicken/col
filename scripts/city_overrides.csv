@@ -3,6 +3,9 @@
 #   - geoid: a Census code from the 2025 Gazetteer (7 digits for a place,
 #     10 digits for a county subdivision).
 #   - lat and lon: an approximate location, for a city that has no Census area.
+#   - geoid, lat, and lon: the Census area, but at a different location. Use
+#     this when the Census internal point is in water (for example, San
+#     Francisco's area includes the Farallon Islands).
 # After you change this file, run scripts/process.py again.
 state,zillow_name,geoid,lat,lon,note
 FL,Fountainbleau,1224562,,,Fountainebleau CDP (spelling)
@@ -22,3 +25,6 @@ TN,Cordova,,35.156,-89.776,Cordova TN (part of Memphis; approx.)
 TX,Porter,,30.103,-95.232,Porter TX (unincorporated; approx.)
 VA,Bristow,,38.722,-77.538,Bristow VA (unincorporated; approx.)
 AK,Eagle River,,61.322,-149.568,Eagle River AK (part of Anchorage; approx.)
+CA,San Francisco,0667000,37.779,-122.419,San Francisco city (Census point is offshore)
+TX,Corpus Christi,4817000,27.801,-97.396,Corpus Christi city (Census point is in the bay)
+ME,Portland,2360545,43.659,-70.257,Portland city (Census point is in Casco Bay)
