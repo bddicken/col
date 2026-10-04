@@ -42,10 +42,14 @@ function valueAtT(values, t) {
  * scrub (snaps to whole years), arrow keys / Home / End step it, and hovering
  * reads out the year and value under the pointer. Re-rendered every frame
  * while playing, so drag/hover state lives on the svg element.
+ *
+ * `compare` ({ label, values }) adds a dashed comparison line, with a key in
+ * the label row. The mobile state view uses it instead of the detail chart.
  */
-export function drawTrend(svg, { years, label: name, values, i0, i1, t, format, onPick }) {
+export function drawTrend(svg, { years, label: name, values, compare, i0, i1, t, format, onPick }) {
   svg.replaceChildren();
-  const vals = values.slice(i0, i1 + 1).filter((v) => v != null);
+  const all = compare ? [...values.slice(i0, i1 + 1), ...compare.values.slice(i0, i1 + 1)] : values.slice(i0, i1 + 1);
+  const vals = all.filter((v) => v != null);
   if (!vals.length) return;
   const lo = Math.min(...vals), hi = Math.max(...vals);
   const pad = { l: 10, r: 10, t: 16, b: 8 };
@@ -55,6 +59,9 @@ export function drawTrend(svg, { years, label: name, values, i0, i1, t, format, 
 
   // Track: full line in muted ink, the part already played in the accent.
   svg.append(el("line", { x1: pad.l, x2: width - pad.r, y1: height - pad.b, y2: height - pad.b, stroke: "var(--axis)" }));
+  if (compare) {
+    svg.append(el("path", { d: pathFor(compare.values, i0, i1, x, y), fill: "none", stroke: "var(--text-muted)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }));
+  }
   svg.append(el("path", { d: pathFor(values, i0, i1, x, y), fill: "none", stroke: "var(--text-muted)", "stroke-width": 2, "stroke-linejoin": "round" }));
   const clipId = `played-${svg.id}`;
   const clip = el("clipPath", { id: clipId });
@@ -68,10 +75,23 @@ export function drawTrend(svg, { years, label: name, values, i0, i1, t, format, 
     const tx = el("text", { y: 10, ...attrs });
     tx.textContent = text;
     labels.append(tx);
+    return tx;
   };
-  label(`${name} · ${years[i0]}`, { x: pad.l });
-  label(years[i1], { x: width - pad.r, "text-anchor": "end" });
   svg.append(labels);
+  if (compare) {
+    // Key: solid line + name, dashed line + comparison name, then the first year.
+    let kx = pad.l;
+    const key = (text, dash) => {
+      labels.append(el("line", { x1: kx, x2: kx + 12, y1: 7, y2: 7, stroke: dash ? "var(--text-muted)" : "var(--accent)", "stroke-width": 2, ...(dash ? { "stroke-dasharray": "3 2" } : {}) }));
+      kx += 12 + 4 + label(text, { x: kx + 16 }).getComputedTextLength() + 10;
+    };
+    key(name, false);
+    key(compare.label, true);
+    label(`· ${years[i0]}`, { x: kx - 4 });
+  } else {
+    label(`${name} · ${years[i0]}`, { x: pad.l });
+  }
+  label(years[i1], { x: width - pad.r, "text-anchor": "end" });
 
   // Playhead + knob (the slider thumb).
   const vt = valueAtT(values, t);
@@ -94,7 +114,7 @@ export function drawTrend(svg, { years, label: name, values, i0, i1, t, format, 
     hover.setAttribute("visibility", "visible");
     labels.setAttribute("visibility", "hidden");
     hLine.setAttribute("x1", x(i)); hLine.setAttribute("x2", x(i));
-    hText.textContent = `${years[i]} · ${format(values[i])}`;
+    hText.textContent = `${years[i]} · ${format(values[i])}` + (compare ? ` · ${compare.label} ${format(compare.values[i])}` : "");
     const anchor = x(i) > width - 120 ? "end" : x(i) < 120 ? "start" : "middle";
     hText.setAttribute("x", x(i)); hText.setAttribute("text-anchor", anchor);
   };

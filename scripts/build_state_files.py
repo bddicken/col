@@ -1,5 +1,5 @@
 """Make one file for each state for the state view of the app:
-data/processed/by_state/{state_fips}.json.
+data/processed/web/by_state/{state_fips}.json.
 
 Each file contains the counties and the cities of one state. All the value
 lists use the `years` list of states.json. The file does not include cities
@@ -47,13 +47,13 @@ def build():
             "home_value": realign(c["home_value"], cities["years"], years),
         })
 
-    out_dir = PROCESSED / "by_state"
+    out_dir = PROCESSED / "web" / "by_state"
     out_dir.mkdir(parents=True, exist_ok=True)
     for fips, d in per_state.items():
         (out_dir / f"{fips}.json").write_text(json.dumps(
             {"fips": fips, "years": years, **d}, separators=(",", ":")))
     sizes = sorted(((out_dir / f"{f}.json").stat().st_size, STATES[f][0]) for f in per_state)
-    print(f"  wrote {len(per_state)} files to data/processed/by_state/ "
+    print(f"  wrote {len(per_state)} files to data/processed/web/by_state/ "
           f"(largest {sizes[-1][1]} {sizes[-1][0] / 1e6:.1f} MB); "
           f"skipped {skipped} cities with approximate locations")
 

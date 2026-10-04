@@ -1,0 +1,9 @@
+// Cloudflare Workers static assets: serves the built app (dist/) as-is.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "col",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}

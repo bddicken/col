@@ -198,13 +198,21 @@ button:focus-visible, input:focus-visible, li:focus-visible { outline: 2px solid
 
 @media (max-width: 860px) {
   .app {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr); /* never wider than the screen */
     grid-template-rows: auto 60vh auto auto;
     grid-template-areas: "top" "stage" "time" "panel";
     height: auto;
   }
   .panel { border-left: 0; border-top: 1px solid var(--border); }
   .ranking-list { max-height: 50vh; }
-  .legend { width: 200px; top: 10px; left: 10px; }
+  .legend { width: auto; max-width: calc(100% - 20px); top: 10px; left: 10px; }
   .year-badge { font-size: 30px; }
+  .topbar { padding: 10px 12px; }
+  .controls { max-width: 100%; }
+  /* Long button rows scroll sideways instead of widening the page. */
+  .segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .segmented::-webkit-scrollbar { display: none; }
+  .timeline { padding: 10px 12px; }
+  /* The timeline shows the comparison line instead (see renderTrend). */
+  .detail svg, .detail .key { display: none; }
 }

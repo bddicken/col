@@ -7,7 +7,9 @@ The project has two parts:
 - A data pipeline in `scripts/`. The pipeline downloads public data and makes the files that the app uses.
 - A web app in `app/`. The app shows the data on a 3D map.
 
-The repository does not include the data. To make the data, do procedures 1 to 3. To start the app, do procedure 4.
+The repository does not include the data. To make the data, do procedures 1 to 3. To start the app, do procedure 4. To publish the app on Cloudflare, do procedure 5.
+
+The live app is at https://col.bendicken.workers.dev.
 
 For information about each data source and its terms of use, refer to [DATA_SOURCES.md](DATA_SOURCES.md).
 
@@ -94,7 +96,7 @@ The project does not keep the key in a file. Give the key only in the command.
 
 2. Make sure that the output does not show an error.
 
-The script reads the files in `data/raw/`. It writes the app files to `data/processed/`. The script takes less than 1 minute.
+The script reads the files in `data/raw/`. It writes the processed files to `data/processed/`. It also copies the files that the app loads to `data/processed/web/`. The script takes less than 1 minute.
 
 To process only some of the data, give the names of the steps. For example:
 
@@ -106,7 +108,7 @@ The steps are `states`, `counties`, `cities`, and `by_state`. The `by_state` ste
 
 ## Procedure 4: Start the app
 
-> **NOTE:** The app reads the files in `data/processed/`. Do procedures 1 to 3 before you start the app.
+> **NOTE:** The app reads the files in `data/processed/web/`. Do procedures 1 to 3 before you start the app.
 
 1. Go to the `app` directory:
 
@@ -128,6 +130,41 @@ The steps are `states`, `counties`, `cities`, and `by_state`. The `by_state` ste
 
 4. Open http://localhost:5173 in a web browser.
 
+## Procedure 5: Deploy the app to Cloudflare
+
+The app is a static site on Cloudflare Workers. The deployment includes the app and the files in `data/processed/web/` (approximately 11 MB). It does not include the other files in `data/processed/`.
+
+1. Do procedures 1 to 3.
+2. Go to the `app` directory:
+
+   ```bash
+   cd app
+   ```
+
+3. Install the packages:
+
+   ```bash
+   npm install
+   ```
+
+4. Log in to Cloudflare. A web browser opens. Log in and give access to Wrangler:
+
+   ```bash
+   npx wrangler login
+   ```
+
+   > **NOTE:** You must do this step only one time on each computer.
+
+5. Build and deploy the app:
+
+   ```bash
+   npm run deploy
+   ```
+
+6. Make sure that the output shows `Deployed col triggers` and the URL of the app.
+
+The settings for the deployment are in `app/wrangler.jsonc`. The name of the app is `col`.
+
 ## Update the data
 
 Zillow and FRED publish new data each month. FHFA publishes new data each quarter. To update the data:
@@ -145,6 +182,7 @@ Zillow and FRED publish new data each month. FHFA publishes new data each quarte
    ```
 
 3. If the app is open, reload the page in the web browser.
+4. To update the live app, do steps 2 and 5 of procedure 5.
 
 ## Use the app
 
@@ -199,7 +237,8 @@ In the state view, labels show the 8 cities with the largest population. The add
 ```
 data/
   raw/                  Source files, one directory for each source (not in the repository)
-  processed/            Files for the app (not in the repository)
+  processed/            Processed files (not in the repository)
+    web/                The files that the app loads. Only this directory is deployed.
 scripts/
   download.py           Downloads the source files
   process.py            Runs all the processing steps
@@ -212,6 +251,7 @@ scripts/
 app/
   index.html            The app page
   src/                  The app code
+  wrangler.jsonc        The Cloudflare settings
 ```
 
 ## Processed data
@@ -228,7 +268,8 @@ The process script writes these files to `data/processed/`:
 | `cities.json` | 21,367 cities with a location | 2000 to 2026 |
 | `cities_annual.csv` | The city data, with one row for each city and year | 2000 to 2026 |
 | `city_crosswalk.csv` | The location of each Zillow city, and how the script found it | Not applicable |
-| `by_state/{fips}.json` | The counties and cities of one state. The app loads this file when you open a state. | 1975 to 2026 |
+| `web/` | The files that the app loads: `states.json`, `by_state/{fips}.json`, and the map shapes | Not applicable |
+| `web/by_state/{fips}.json` | The counties and cities of one state. The app loads this file when you open a state. | 1975 to 2026 |
 | `cpi.json` | The consumer price index (CPI-U), annual average | 1947 to 2026 |
 | `geo/*.json` | The map shapes of the states and counties (TopoJSON) | Not applicable |
 
@@ -293,7 +334,8 @@ To correct the location of a city, add a line to `scripts/city_overrides.csv`. T
 | The download output shows `FAIL` lines. | A server did not respond. | Run the download script again. |
 | The output shows `Census API rejected the key`. | The key is not active. | Click the activation link in the email from the Census Bureau. Run the script again. |
 | The process script stops with `No such file or directory`. | A source file is missing. | Do procedure 2 again. |
-| The app does not show the map. | The files in `data/processed/` are missing. | Do procedures 2 and 3. Then reload the page. |
+| The app does not show the map. | The files in `data/processed/web/` are missing. | Do procedures 2 and 3. Then reload the page. |
+| `npm run deploy` shows an authentication error. | Wrangler is not logged in to Cloudflare. | Do step 4 of procedure 5. |
 
 ## Attribution
 

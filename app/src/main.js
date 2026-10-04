@@ -402,6 +402,7 @@ function setSelected(id) {
   updateFocus();
   markRows();
   renderDetail();
+  renderTrend();
 }
 
 /** State view: the selected county/city vs its state, or else the state vs the US. */
@@ -430,6 +431,7 @@ function renderDetail() {
     <svg id="detail-chart"></svg>
     <div class="key"><span><i style="background:var(--accent)"></i>${sel ? rec.name : st.abbr}</span><span><i style="background:var(--text-muted)"></i>${sel ? st.name : "United States"}</span></div>`;
   if (sel) $("detail-close").onclick = () => setSelected(null);
+  if (mobile.matches) return; // the timeline shows this comparison on phones
   const series = (r) => data.years.map((_, k) => m.get(r, k));
   drawDetail($("detail-chart"), {
     years: data.years, state: series(rec), us: series(parent),
@@ -439,13 +441,26 @@ function renderDetail() {
 
 // ---------------------------------------------------------------- timeline
 
+// Phone layout (same breakpoint as styles.css): in a state view the timeline
+// also carries the comparison line, and the detail card drops its own chart.
+const mobile = window.matchMedia("(max-width: 860px)");
+
 function renderTrend() {
   const m = ui.metric;
-  const rec = parentRecord();
+  const series = (r) => data.years.map((_, k) => m.get(r, k));
+  let rec = parentRecord();
+  let compare = null;
+  if (mobile.matches && ui.state) {
+    const st = stateByFips.get(ui.state);
+    const sel = ui.selected != null ? current().byId.get(ui.selected) : null;
+    rec = sel ?? st;
+    compare = sel ? { label: st.abbr, values: series(st) } : { label: "US", values: series(data.us) };
+  }
   drawTrend($("trend"), {
     years: data.years,
     label: rec.name,
-    values: data.years.map((_, k) => m.get(rec, k)),
+    values: series(rec),
+    compare,
     i0: ui.range[0], i1: ui.range[1], t: ui.t, format: m.format,
     onPick: (i) => { pause(); setYear(i); },
   });
@@ -542,6 +557,7 @@ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () 
   refresh();
 });
 new ResizeObserver(() => { renderTrend(); renderDetail(); }).observe($("trend"));
+mobile.addEventListener("change", () => { renderTrend(); renderDetail(); });
 window.addEventListener("hashchange", route);
 
 refresh();
