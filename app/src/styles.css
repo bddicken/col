@@ -62,7 +62,7 @@ button { font: inherit; color: inherit; }
   display: grid;
   grid-template-columns: 1fr var(--panel-w);
   grid-template-rows: auto 1fr auto;
-  grid-template-areas: "top top" "stage panel" "time panel";
+  grid-template-areas: "top panel" "stage panel" "time panel";
   height: 100vh;
 }
 
