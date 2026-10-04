@@ -161,21 +161,70 @@ function updateLabels() {
 
 // ---------------------------------------------------------------- navigation
 
-let navToken = 0;
+// The URL hash holds the whole view, so a link opens the same view:
+// "" = nation, "#CA" = counties of CA, "#CA/cities", plus settings that differ
+// from the defaults, e.g. "#CA/cities?metric=nominal&year=2010&scale=year&place=20330".
+// Navigation (state, level) adds a history entry; settings replace the current one.
 
-/** Route from the URL hash: "" = nation, "#CA" = counties of CA, "#CA/cities". */
+let navToken = 0;
+let navPending = true; // the URL describes a view that isn't shown yet: don't overwrite it
+
+function parseHash() {
+  const [path, query = ""] = location.hash.replace(/^#/, "").split("?");
+  const [abbr, level] = path.split("/");
+  return { abbr: (abbr || "").toUpperCase(), level, params: new URLSearchParams(query) };
+}
+
+/** Metric, scale and year from URL params; anything missing or unknown gets its default. */
+function applySettings(params) {
+  ui.metric = metrics.find((m) => m.id === params.get("metric")) ?? metrics[0];
+  ui.scale = params.get("scale") === "year" ? "year" : "fixed";
+  const i = data.years.indexOf(Number(params.get("year")));
+  ui.t = i >= 0 ? i : data.years.length - 1; // no year = the latest
+}
+
+/** Hash for a view with the current settings. The selection is kept only within the same view. */
+function hashFor(abbr, level) {
+  const path = abbr ? (level === "cities" ? `${abbr}/cities` : abbr) : "";
+  const q = new URLSearchParams();
+  if (ui.metric !== metrics[0]) q.set("metric", ui.metric.id);
+  if (ui.scale !== "fixed") q.set("scale", ui.scale);
+  if (yearIndex() !== ui.range[1]) q.set("year", data.years[yearIndex()]);
+  const sameView = ui.state && stateByAbbr.get(abbr)?.fips === ui.state && level === ui.level;
+  if (sameView && ui.selected != null) q.set("place", ui.selected);
+  const qs = q.toString();
+  return path + (qs ? `?${qs}` : "");
+}
+
+/** Write the current settings to the URL without a new history entry. */
+function syncUrl() {
+  if (navPending || ui.playing) return;
+  const hash = hashFor(ui.state && stateByFips.get(ui.state).abbr, ui.level);
+  if (location.hash.replace(/^#/, "") === hash) return;
+  history.replaceState(null, "", hash ? `#${hash}` : location.pathname + location.search);
+}
+
 async function route() {
-  const [abbr, lvl] = location.hash.replace(/^#/, "").split("/");
-  const st = stateByAbbr.get((abbr || "").toUpperCase());
+  const { abbr, level, params } = parseHash();
+  const st = stateByAbbr.get(abbr);
   const token = ++navToken;
-  if (!st) return showNation();
-  const [detail, countyShapes] = await Promise.all([loadStateDetail(st.fips), loadCountyShapes(st.fips)]);
-  if (token !== navToken) return; // a newer navigation won
-  showState(st.fips, lvl === "cities" ? "cities" : "counties", detail, countyShapes);
+  navPending = true;
+  applySettings(params);
+  if (st) {
+    const [detail, countyShapes] = await Promise.all([loadStateDetail(st.fips), loadCountyShapes(st.fips)]);
+    if (token !== navToken) return; // a newer navigation won
+    navPending = false;
+    showState(st.fips, level === "cities" ? "cities" : "counties", detail, countyShapes);
+    const place = params.get("place");
+    select([...current().byId.keys()].find((id) => String(id) === place) ?? null);
+  } else {
+    navPending = false;
+    showNation();
+  }
 }
 
 function go(abbr, level) {
-  location.hash = abbr ? (level === "cities" ? `${abbr}/cities` : abbr) : "";
+  location.hash = hashFor(abbr, level);
 }
 
 function showNation() {
@@ -397,12 +446,16 @@ function positionTooltip(p) {
 
 // ---------------------------------------------------------------- selection + detail panel
 
-function setSelected(id) {
-  ui.selected = id === ui.selected ? null : id;
+/** Select id, or clear the selection if it is already selected. */
+const setSelected = (id) => select(id === ui.selected ? null : id);
+
+function select(id) {
+  ui.selected = id;
   updateFocus();
   markRows();
   renderDetail();
   renderTrend();
+  syncUrl();
 }
 
 /** State view: the selected county/city vs its state, or else the state vs the US. */
@@ -476,6 +529,7 @@ function setYear(t, immediate = false, force = false) {
     if (ui.hovered) renderTooltip();
   }
   renderTrend();
+  syncUrl();
 }
 
 let lastFrame = null;
@@ -560,6 +614,7 @@ new ResizeObserver(() => { renderTrend(); renderDetail(); }).observe($("trend"))
 mobile.addEventListener("change", () => { renderTrend(); renderDetail(); });
 window.addEventListener("hashchange", route);
 
+applySettings(parseHash().params); // first paint already uses the linked settings
 refresh();
 updateMap(true);
 route();

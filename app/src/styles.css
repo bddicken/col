@@ -134,8 +134,15 @@ button:focus-visible, input:focus-visible, li:focus-visible { outline: 2px solid
   font-size: 11px; font-weight: 600; color: var(--text-primary); letter-spacing: 0.01em;
   text-shadow: 0 0 3px var(--surface-1), 0 0 3px var(--surface-1), 0 0 6px var(--surface-1);
 }
-.map-label.city span { font-size: 12px; }
-.map-label.city span::before { content: "● "; font-size: 8px; vertical-align: 2px; }
+/* City labels: CSS2DRenderer centers the whole label on the city, so shift the
+   span right by half its width to put the dot (not the text) on the city. */
+.map-label.city span {
+  position: relative; padding-left: 8px; font-size: 12px; transform: translateX(50%);
+}
+.map-label.city span::before {
+  content: ""; position: absolute; left: -2.5px; top: 50%; width: 5px; height: 5px;
+  border-radius: 50%; background: currentColor; transform: translateY(-50%);
+}
 
 .year-badge {
   position: absolute; top: 12px; right: 20px; font-size: 44px; font-weight: 700;

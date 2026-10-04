@@ -263,7 +263,7 @@ The line chart at the bottom shows the trend for the US, or for the selected sta
    - Press Esc.
    - Click **US Housing Costs** at the top of the page.
 
-In the state view, labels show the 8 cities with the largest population. The address in the browser shows the view, for example `#CA` or `#CA/cities`.
+In the state view, labels show the 8 cities with the largest population. The address in the browser shows the view, for example `#CA` or `#CA/cities`. It also shows the settings that are not the default: the metric, the year, the scale, and the selected county or city, for example `#CA/cities?metric=nominal&year=2010&scale=year&place=20330`. Copy the address to share the view.
 
 ## Directory layout
 
