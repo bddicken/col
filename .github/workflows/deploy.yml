@@ -20,9 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -37,7 +37,8 @@ jobs:
         run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
 
       - name: Restore source data
-        uses: actions/cache@v4
+        id: raw-cache
+        uses: actions/cache/restore@v6
         with:
           path: data/raw
           key: raw-data-${{ steps.month.outputs.month }}
@@ -45,10 +46,18 @@ jobs:
       - name: Download source data
         run: python scripts/download.py
 
+      # Saved right after the download, so a later failure does not lose it.
+      - name: Save source data
+        if: steps.raw-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: data/raw
+          key: raw-data-${{ steps.month.outputs.month }}
+
       - name: Process data
         run: python scripts/process.py
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
