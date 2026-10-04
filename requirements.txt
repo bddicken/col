@@ -1,0 +1,4 @@
+pandas>=2.0
+requests>=2.31
+urllib3<2  # macOS system Python ships LibreSSL
+openpyxl>=3.1

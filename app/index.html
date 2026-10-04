@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>US Housing Costs</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="title">
+          <h1 id="title">US Housing Costs</h1>
+        </div>
+        <div class="controls">
+          <div class="segmented" id="metric-buttons" role="radiogroup" aria-label="Metric"></div>
+          <div class="segmented" id="level-buttons" role="radiogroup" aria-label="Places" hidden></div>
+        </div>
+      </header>
+
+      <main class="stage">
+        <div class="map" id="map"></div>
+
+        <section class="legend" id="legend" aria-label="Legend">
+          <div class="legend-title" id="legend-title"></div>
+          <div class="legend-bar" id="legend-bar"></div>
+          <div class="legend-ticks" id="legend-ticks"></div>
+          <div class="legend-scale">
+            <span id="scale-label">Scale</span>
+            <div class="segmented small" id="scale-buttons" role="radiogroup" aria-labelledby="scale-label"></div>
+          </div>
+        </section>
+
+        <div class="year-badge" id="year-badge" aria-live="polite"></div>
+        <div class="tooltip" id="tooltip" role="status" hidden></div>
+      </main>
+
+      <aside class="panel" id="panel">
+        <section class="detail" id="detail" hidden></section>
+        <section class="ranking">
+          <h2 id="ranking-title">States</h2>
+          <ol id="ranking" class="ranking-list"></ol>
+        </section>
+      </aside>
+
+      <footer class="timeline">
+        <div class="track">
+          <svg class="trend" id="trend" role="slider" tabindex="0" aria-label="Year"></svg>
+        </div>
+        <p class="source">Data: Zillow, FHFA, Census, BEA, BLS</p>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

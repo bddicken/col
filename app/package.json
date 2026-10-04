@@ -1,0 +1,19 @@
+{
+  "name": "housing-map",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "d3-geo": "^3.1.1",
+    "three": "^0.186.1",
+    "topojson-client": "^3.1.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.1"
+  }
+}

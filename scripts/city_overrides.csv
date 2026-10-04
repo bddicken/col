@@ -1,0 +1,22 @@
+# Hand-checked locations for Zillow cities the automatic matcher misses.
+# Key: state + Zillow RegionName. Give a Census GEOID (7-digit place or
+# 10-digit county subdivision from the 2025 Gazetteer) or, for postal-only
+# communities with no Census geography, approximate lat/lon.
+state,zillow_name,geoid,lat,lon,note
+FL,Fountainbleau,1224562,,,Fountainebleau CDP (spelling)
+FL,Hallandale,1228452,,,Hallandale Beach city
+HI,Kailua Kona,1523000,,,Kailua CDP (Hawaii County)
+MI,Clarkston,2682450,,,Village of Clarkston city
+MD,Lanham Seabrook,2445550,,,Lanham CDP (former Lanham-Seabrook CDP)
+MD,Lutherville Timonium,2478050,,,Timonium CDP (former Lutherville-Timonium CDP)
+NJ,Orange,3401313045,,,City of Orange township
+PA,Havertown,4204533144,,,Haverford township
+TX,Cypress,,29.969,-95.697,Cypress TX (unincorporated; approx.)
+MD,Windsor Mill,,39.337,-76.774,Windsor Mill MD (postal; approx.)
+MD,Halethorpe,,39.241,-76.682,Halethorpe MD (postal; approx.)
+MD,Nottingham,,39.391,-76.482,Nottingham MD (postal; approx.)
+GA,Ellenwood,,33.622,-84.262,Ellenwood GA (postal; approx.)
+TN,Cordova,,35.156,-89.776,Cordova TN (part of Memphis; approx.)
+TX,Porter,,30.103,-95.232,Porter TX (unincorporated; approx.)
+VA,Bristow,,38.722,-77.538,Bristow VA (unincorporated; approx.)
+AK,Eagle River,,61.322,-149.568,Eagle River AK (part of Anchorage; approx.)
