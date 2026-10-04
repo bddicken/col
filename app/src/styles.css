@@ -107,7 +107,7 @@ button:focus-visible, input:focus-visible, li:focus-visible { outline: 2px solid
 .legend {
   position: absolute; top: 16px; left: 16px; width: 260px; padding: 12px 14px;
   background: color-mix(in srgb, var(--surface-1) 88%, transparent);
-  border: 1px solid var(--border); border-radius: 10px; backdrop-filter: blur(6px);
+  border-radius: 10px; backdrop-filter: blur(6px);
   pointer-events: none;
 }
 .legend-title { font-size: 14px; font-weight: 650; }
