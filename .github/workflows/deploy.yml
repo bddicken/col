@@ -1,0 +1,71 @@
+# Builds the data and the app, then deploys to Cloudflare Workers
+# (https://col.bendicken.workers.dev) on every push or merge to main.
+#
+# Requires the repository secret CLOUDFLARE_API_TOKEN (see README, procedure 6)
+# and the repository variable CLOUDFLARE_ACCOUNT_ID.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # run by hand from the Actions tab
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false # let a running deploy finish; the next one follows
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python packages
+        run: pip install -r requirements.txt
+
+      # The source downloads (~220 MB) are cached for one calendar month, so most
+      # deploys skip them. The first run of each month downloads fresh data.
+      - name: Get cache month
+        id: month
+        run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore source data
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: raw-data-${{ steps.month.outputs.month }}
+
+      - name: Download source data
+        run: python scripts/download.py
+
+      - name: Process data
+        run: python scripts/process.py
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install app packages
+        working-directory: app
+        run: npm ci
+
+      - name: Build and deploy
+        working-directory: app
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::The CLOUDFLARE_API_TOKEN secret is not set. See README, procedure 6."
+            exit 1
+          fi
+          npm run deploy

@@ -7,7 +7,7 @@ The project has two parts:
 - A data pipeline in `scripts/`. The pipeline downloads public data and makes the files that the app uses.
 - A web app in `app/`. The app shows the data on a 3D map.
 
-The repository does not include the data. To make the data, do procedures 1 to 3. To start the app, do procedure 4. To publish the app on Cloudflare, do procedure 5.
+The repository does not include the data. To make the data, do procedures 1 to 3. To start the app, do procedure 4. To publish the app on Cloudflare, do procedure 5. To publish the app automatically after each push to `main`, do procedure 6.
 
 The live app is at https://col.bendicken.workers.dev.
 
@@ -165,6 +165,39 @@ The app is a static site on Cloudflare Workers. The deployment includes the app 
 
 The settings for the deployment are in `app/wrangler.jsonc`. The name of the app is `col`.
 
+## Procedure 6: Set up automatic deployment
+
+The GitHub workflow `.github/workflows/deploy.yml` deploys the app after each push or merge to `main`. The workflow downloads the data, processes it, builds the app, and deploys it to Cloudflare. The workflow keeps the downloaded files for one calendar month. Thus, the first run of each month downloads new data.
+
+The workflow needs a Cloudflare API token. You must do these steps only one time.
+
+1. Open https://dash.cloudflare.com/profile/api-tokens.
+2. Click **Create Token**.
+3. Find the **Edit Cloudflare Workers** template. Click **Use template**.
+4. In **Account Resources**, select your account.
+5. In **Zone Resources**, select **All zones**.
+6. Click **Continue to summary**. Then click **Create Token**.
+7. Copy the token.
+8. Add the token to the GitHub repository as a secret. When the command asks for the value, paste the token:
+
+   ```bash
+   gh secret set CLOUDFLARE_API_TOKEN --repo bddicken/col
+   ```
+
+9. Start the workflow:
+
+   ```bash
+   gh workflow run deploy.yml --repo bddicken/col
+   ```
+
+10. Make sure that the workflow completes without errors:
+
+    ```bash
+    gh run watch --repo bddicken/col
+    ```
+
+The workflow also uses the repository variable `CLOUDFLARE_ACCOUNT_ID`. This variable is already set.
+
 ## Update the data
 
 Zillow and FRED publish new data each month. FHFA publishes new data each quarter. To update the data:
@@ -182,7 +215,7 @@ Zillow and FRED publish new data each month. FHFA publishes new data each quarte
    ```
 
 3. If the app is open, reload the page in the web browser.
-4. To update the live app, do steps 2 and 5 of procedure 5.
+4. To update the live app, do steps 2 and 5 of procedure 5. If you did procedure 6, the workflow downloads new data in the first run of each month.
 
 ## Use the app
 
@@ -248,6 +281,8 @@ scripts/
   build_state_files.py  Makes one file for each state, for the state view
   city_overrides.csv    Manual city locations
   common.py             Shared functions
+.github/workflows/
+  deploy.yml            Deploys the app after each push to main
 app/
   index.html            The app page
   src/                  The app code
@@ -336,6 +371,7 @@ To correct the location of a city, add a line to `scripts/city_overrides.csv`. T
 | The process script stops with `No such file or directory`. | A source file is missing. | Do procedure 2 again. |
 | The app does not show the map. | The files in `data/processed/web/` are missing. | Do procedures 2 and 3. Then reload the page. |
 | `npm run deploy` shows an authentication error. | Wrangler is not logged in to Cloudflare. | Do step 4 of procedure 5. |
+| The GitHub workflow stops with `The CLOUDFLARE_API_TOKEN secret is not set`. | The repository does not have the token. | Do procedure 6. |
 
 ## Attribution
 
